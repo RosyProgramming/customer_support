@@ -7,9 +7,9 @@ const pool = new Pool({
     }
 });
 
-function getCustomerInfo(email){
-    const customer = getCustomer(email);
-    const purchases = getCustomerPurchases(customer);
+async function getCustomerInfo(email){
+    const customer = await getCustomer(email);
+    const purchases = await getCustomerPurchases(customer);
 
     return {
         customer: customer,
@@ -18,13 +18,13 @@ function getCustomerInfo(email){
 }
 
 async function getCustomer(email){
-    const query = `SELECT * FROM customers WHERE email = '${email}'`
+    const query = `SELECT * FROM customers WHERE email = '${email}'`;
     return (await pool.query(query)).rows[0];
 }
 
 async function getCustomerPurchases(customer){
     const query = `SELECT * FROM purchases WHERE customer_id = '${customer.id}'`;
-    return (await pool.query(query)).rows[0];
+    return (await pool.query(query)).rows;
 }
 
 export { getCustomerInfo }
