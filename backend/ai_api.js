@@ -1,57 +1,38 @@
-import { GoogleGenAI } from "@google/genai";
-import { Pool } from 'pg';
+import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-function getDaysSincePurchase(purchase){
+const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_API_KEY });
+
+function getDaysSincePurchase(purchase) {
     const today = new Date();
     const diffInMilis = today - purchase.date;
 
     return Math.floor(diffInMilis / 1000 / 60 / 60 / 24);
 }
 
-function getCustomerAge(customer){
+function getCustomerAge(customer) {
     const today = new Date();
     const diffWithBirthDate = today - customer.birth_date;
 
     return (new Date(diffWithBirthDate)).getFullYear() - 1970;
 }
 
-const pool = new Pool({
-    connectionString: "postgresql://neondb_owner:npg_JEFo9Sk4ZBKM@ep-weathered-wind-ad059n6h-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
-    ssl: {
-        rejectUnauthorized: false
+function getPurchasesString() {
+    let purchasesString = "";
+
+    for (let purchase of purchases) {
+        purchasesString += `
+        - ${purchase.product}:
+            - Preço: ${purchase.price}
+            - Status: ${purchase.status}
+            - Dias desde a compra: ${getDaysSincePurchase(purchase)}`
     }
-});
 
-const customer = (await pool.query("SELECT * FROM customers WHERE id = '11111111-aaaa-bbbb-cccc-000000000002'")).rows[0];
-
-const purchases = (await pool.query("SELECT * FROM purchases WHERE customer_id = '11111111-aaaa-bbbb-cccc-000000000002'")).rows;
-
-let purchasesString = "";
-
-for(let purchase of purchases){
-    purchasesString += `
-    - ${purchase.product}:
-        - Preço: ${purchase.price}
-        - Status: ${purchase.status}
-        - Dias desde a compra: ${getDaysSincePurchase(purchase)} 
-    `
+    return purchasesString;
 }
 
-// console.log(purchasesString);
-
-const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_API_KEY });
-
-// agir como um atendente da nossa empresa de e-commerce
-// responder perguntas sobre pedidos
-// ele só podera responder perguntas sobre pedidos, se o cliente perguntar qualquer outra coisa
-// direcionar para atnedimento humano
-// inserir dados ndo banco de dados
-
-// inserir dados do banco de dados "fake"
-
-const systemInstruction = `
+const systemInstruction = (customer, purchases) => `
 Você é um atendente de uma empresa de e-commerce. Você está conversando com clientes que
 podem ter dúvidas sobre suas compras recentes no site. Responda os clientes de forma amigável.
 
@@ -83,17 +64,21 @@ idade: ${getCustomerAge(customer)}
 estado: ${customer.state}
 
 <COMPRAS>
-${purchasesString}
-
+${getPurchasesString(purchases)}
 `;
 
+async function getAIResponse(customerInfo, message) {
+    const instruction = systemInstruction(customerInfo.customer, customerInfo.purchases);
 
-const response = await genai.models.generateContent({
-    model: 'gemini-2.0-flash',
-    config: {
-        systemInstruction: systemInstruction,
-    },
-    contents: "olá, quero comprar um sabonete"
-});
+    const response = await genai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        config: {
+            systemInstruction: instruction,
+        },
+        contents: message
+    });
 
-console.log(response.candidates[0].content.parts[0].text);
+    return response.candidates[0].content.parts[0].text;
+}
+
+export { getAIResponse }

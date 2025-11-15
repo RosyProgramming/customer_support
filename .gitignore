@@ -1,0 +1,6 @@
+backend/node_modules
+ai_test/node_modules
+create_data/node_modules
+
+backend/.env
+ai_test/.env
