@@ -10,12 +10,28 @@ app.use(express.json());
 
 const port = 3000;
 
+const chatHistory = {};
+
 app.post("/support", async (req, res) => {
     const email = req.body.email;
     const message = req.body.message;
 
+    if(!(email in chatHistory)) {
+        chatHistory[email] = [];
+    }
+
+    chatHistory[email].push({ 
+        role: 'user', 
+        parts:  [{ text: message }]
+    });
+
     const customerInfo = await getCustomerInfo(email);
-    const response = await getAIResponse(customerInfo, message);
+    const response = await getAIResponse(customerInfo, chatHistory[email]);
+
+    chatHistory[email].push({ 
+        role: 'model', 
+        parts:  [{ text: response }]
+    });
 
     res.send(JSON.stringify({
         response: response
