@@ -5,16 +5,24 @@ import { getAIResponse } from './ai_api.js';
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+
 
 const port = 3000;
 
-const email = "camila.mendes@example.com";
+app.post("/support", async (req, res) => {
+    const email = req.body.email;
+    const message = req.body.message;
 
-const customerInfo = await getCustomerInfo(email);
+    const customerInfo = await getCustomerInfo(email);
+    const response = await getAIResponse(customerInfo, message);
 
-const response = await getAIResponse(customerInfo, " Quero saber o status da minha última compra.");
+    res.send(JSON.stringify({
+        response: response
+    }));
+});
 
-
+// const email = "camila.mendes@example.com";
 
 // 1 - usuário + mensagem
 // 2 - consultar banco de dados para pegar a info do usuário

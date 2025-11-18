@@ -18,13 +18,13 @@ async function getCustomerInfo(email){
 }
 
 async function getCustomer(email){
-    const query = `SELECT * FROM customers WHERE email = '${email}'`;
-    return (await pool.query(query)).rows[0];
+    const query = "SELECT * FROM customers WHERE email = $1";
+    return (await pool.query(query, [email])).rows[0];
 }
 
 async function getCustomerPurchases(customer){
-    const query = `SELECT * FROM purchases WHERE customer_id = '${customer.id}'`;
-    return (await pool.query(query)).rows;
+    const query = "SELECT * FROM purchases WHERE customer_id = $1";
+    return (await pool.query(query, [customer.id])).rows;
 }
 
 export { getCustomerInfo }
